@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timeline of Indian Dynasties (Sticky Header)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #f4f1ea;
+    font-family: Georgia, 'Times New Roman', serif;
+    display: flex;
+    justify-content: center;
+    padding: 20px 10px;
+    color: #1a1a1a;
+    overflow-x: hidden;
+  }
+  .wrap {
+    width: 100%;
+    max-width: 1600px;
+    background: #f4f1ea;
+    border: 1px solid #ddd6c6;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    overflow-x: auto;
+    position: relative;
+  }
+  h1 {
+    font-size: clamp(16px, 2.5vw, 26px);
+    text-align: center;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+  p.sub {
+    text-align: center;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    color: #777;
+    margin-bottom: 20px;
+  }
+
+  /* Scrollable Timeline Container */
+  .timeline-scroll-container {
+    position: relative;
+    width: 1500px;
+    max-height: 65vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: 1px solid #e2ddd0;
+    background: #faf9f6;
+    border-radius: 4px;
+  }
+
+  /* Sticky Header for the Axis */
+  .timeline-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    height: 40px;
+    background: #f4f1ea;
+    border-bottom: 2px solid #b0a891;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  .axis-line {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 1px;
+    border-left: 1px dashed #b0a891;
+    pointer-events: none;
+  }
+  .axis-label {
+    position: absolute;
+    bottom: 8px; /* align nicely within the 40px header */
+    transform: translateX(-50%);
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    color: #777;
+    white-space: nowrap;
+    font-weight: bold;
+  }
+
+  /* Timeline Body */
+  .timeline-body {
+    position: relative;
+    width: 1500px;
+    padding-bottom: 20px;
+  }
+  .row {
+    position: absolute;
+    left: 0; right: 0;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.2s;
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+  .row:hover { background: rgba(140, 45, 25, 0.04); }
+  .row.active { background: rgba(140, 45, 25, 0.08); }
+  
+  .bar {
+    position: absolute;
+    height: 8px;
+    background: #8c2d19;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+  .row:hover .bar { filter: brightness(1.3); }
+  .row.active .bar { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #8c2d19; }
+
+  .name {
+    position: absolute;
+    font-size: 12px;
+    white-space: nowrap;
+    transition: color 0.2s, font-weight 0.2s;
+    text-decoration: none;
+    color: #1a1a1a;
+  }
+  .name a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .row:hover .name, .row.active .name { font-weight: bold; color: #8c2d19; }
+  
+  /* Detail Panel */
+  .detail-panel {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #fff;
+    border-top: 4px solid #8c2d19;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+    max-height: 65vh;
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    font-family: Arial, sans-serif;
+  }
+  .detail-panel.open { transform: translateY(0); }
+  .panel-header {
+    padding: 15px 25px;
+    background: #f4f1ea;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #ddd6c6;
+  }
+  .panel-header h2 { font-size: 20px; color: #8c2d19; margin: 0; }
+  .panel-header h2 a { color: #8c2d19; text-decoration: none; }
+  .panel-header h2 a:hover { text-decoration: underline; }
+  .close-btn {
+    background: #8c2d19; color: white; border: none; 
+    padding: 8px 16px; border-radius: 20px; cursor: pointer;
+    font-weight: bold; transition: opacity 0.2s;
+  }
+  .close-btn:hover { opacity: 0.8; }
+  
+  .panel-content {
+    padding: 20px 25px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    max-width: 800px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  
+  .king-card {
+    background: #faf9f6;
+    border: 1px solid #e2ddd0;
+    border-radius: 6px;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid #8c2d19;
+  }
+  .king-name { font-weight: bold; font-size: 14px; color: #333; }
+  .king-name a { color: #333; text-decoration: none; }
+  .king-name a:hover { color: #8c2d19; text-decoration: underline; }
+  .king-dates { font-size: 12px; color: #777; background: #eee; padding: 3px 8px; border-radius: 12px; white-space: nowrap; }
+  
+  .legend {
+    margin-top: 16px;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    color: #666;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .note { font-size: 11px; color: #888; margin-top: 5px; text-align: center; font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>Timeline of Indian Dynasties (c. 650 BCE – 1450 CE)</h1>
+  <p class="sub">Click any dynasty bar for rulers. Click any Dynasty or Ruler name to view its Wikipedia page.</p>
+
+  <!-- Scrollable Container with Sticky Header -->
+  <div class="timeline-scroll-container">
+    <div class="timeline-header" id="timelineHeader">
+      <!-- Axis lines and labels injected here -->
+    </div>
+    <div class="timeline-body" id="timelineBody">
+      <!-- Dynasties injected here -->
+    </div>
+  </div>
+
+  <div class="legend">
+    Dates are approximate. Chronology and succession vary across historical sources.<br>
+    "c." indicates approximate dates; disputed or uncertain dates are marked.<br>
+    Dynasty and ruler names link to Wikipedia where available.
+  </div>
+</div>
+
+<div class="detail-panel" id="detailPanel">
+  <div class="panel-header">
+    <h2 id="panelTitle">Dynasty Name</h2>
+    <button class="close-btn" onclick="closePanel()">Close ✕</button>
+  </div>
+  <div class="panel-content" id="panelContent"></div>
+</div>
+
+<script>
+  // ---- DATA ----
+  const dynasties = [
+    { 
+      name: "Haryanka", start: -544, end: -413,
+      wiki: "https://en.wikipedia.org/wiki/Haryanka_dynasty",
+      kings: [
+        { name: "Bimbisara", reign: "c. 544 – 492 BCE", wiki: "https://en.wikipedia.org/wiki/Bimbisara" },
+        { name: "Ajatashatru", reign: "c. 492 – 460 BCE", wiki: "https://en.wikipedia.org/wiki/Ajatashatru" },
+        { name: "Udayin", reign: "c. 460 – 444 BCE", wiki: "https://en.wikipedia.org/wiki/Udayin" },
+        { name: "Anuruddha", reign: "c. 444 – 440 BCE" },
+        { name: "Munda", reign: "c. 440 – 437 BCE" },
+        { name: "Nagadasaka", reign: "c. 437 – 413 BCE", wiki: "https://en.wikipedia.org/wiki/Nagadasaka" }
+      ]
+    },
+    { 
+      name: "Shishunaga", start: -413, end: -345,
+      wiki: "https://en.wikipedia.org/wiki/Shishunaga_dynasty",
+      kings: [
+        { name: "Shishunaga", reign: "c. 413 – 395 BCE", wiki: "https://en.wikipedia.org/wiki/Shishunaga" },
+        { name: "Kakavarna Kalasoka", reign: "c. 395 – 367 BCE", wiki: "https://en.wikipedia.org/wiki/Kakavarna" },
+        { name: "Nandivardhana", reign: "c. 367 – 355 BCE" },
+        { name: "Mahanandin", reign: "c. 355 – 345 BCE" }
+      ]
+    },
+    { 
+      name: "Nanda", start: -345, end: -322,
+      wiki: "https://en.wikipedia.org/wiki/Nanda_dynasty",
+      kings: [
+        { name: "Mahapadma Nanda", reign: "c. 345 – 329 BCE", wiki: "https://en.wikipedia.org/wiki/Mahapadma_Nanda" },
+        { name: "Dhana Nanda", reign: "c. 329 – 321 BCE", wiki: "https://en.wikipedia.org/wiki/Dhana_Nanda" }
+      ]
+    },
+    { 
+      name: "Maurya", start: -321, end: -185,
+      wiki: "https://en.wikipedia.org/wiki/Maurya_Empire",
+      kings: [
+        { name: "Chandragupta Maurya", reign: "c. 321 – 297 BCE", wiki: "https://en.wikipedia.org/wiki/Chandragupta_Maurya" },
+        { name: "Bindusara", reign: "c. 297 – 273 BCE", wiki: "https://en.wikipedia.org/wiki/Bindusara" },
+        { name: "Ashoka the Great", reign: "c. 268 – 232 BCE", wiki: "https://en.wikipedia.org/wiki/Ashoka" },
+        { name: "Dasharatha", reign: "c. 232 – 224 BCE", wiki: "https://en.wikipedia.org/wiki/Dasharatha_Maurya" },
+        { name: "Samprati", reign: "c. 224 – 215 BCE", wiki: "https://en.wikipedia.org/wiki/Samprati" },
+        { name: "Brihadratha (Last)", reign: "c. 187 – 185 BCE", wiki: "https://en.wikipedia.org/wiki/Brihadratha_Maurya" }
+      ]
+    },
+    { 
+      name: "Shunga", start: -185, end: -73,
+      wiki: "https://en.wikipedia.org/wiki/Shunga_Empire",
+      kings: [
+        { name: "Pushyamitra Shunga", reign: "c. 185 – 149 BCE", wiki: "https://en.wikipedia.org/wiki/Pushyamitra_Shunga" },
+        { name: "Agnimitra", reign: "c. 149 – 141 BCE", wiki: "https://en.wikipedia.org/wiki/Agnimitra" },
+        { name: "Vasujyeshtha", reign: "c. 141 – 131 BCE", wiki: "https://en.wikipedia.org/wiki/Vasujyeshtha" },
+        { name: "Vasumitra", reign: "c. 131 – 124 BCE", wiki: "https://en.wikipedia.org/wiki/Vasumitra" },
+        { name: "Andhraka", reign: "c. 124 – 122 BCE" },
+        { name: "Pulindaka", reign: "c. 122 – 119 BCE", wiki: "https://en.wikipedia.org/wiki/Pulindaka" },
+        { name: "Ghosa", reign: "c. 119 – 108 BCE" },
+        { name: "Vajramitra", reign: "c. 108 – 94 BCE" },
+        { name: "Bhagabhadra", reign: "c. 94 – 83 BCE", wiki: "https://en.wikipedia.org/wiki/Bhagabhadra" },
+        { name: "Devabhuti (Last)", reign: "c. 83 – 73 BCE", wiki: "https://en.wikipedia.org/wiki/Devabhuti" }
+      ]
+    },
+    { 
+      name: "Kanva", start: -73, end: -28,
+      wiki: "https://en.wikipedia.org/wiki/Kanva_dynasty",
+      kings: [
+        { name: "Vasudeva", reign: "c. 73 – 64 BCE", wiki: "https://en.wikipedia.org/wiki/Vasudeva_Kanva" },
+        { name: "Bhumimitra", reign: "c. 64 – 50 BCE" },
+        { name: "Narayana", reign: "c. 50 – 38 BCE" },
+        { name: "Susharman (Last)", reign: "c. 38 – 28 BCE" }
+      ]
+    },
+    { 
+      name: "Indo-Greek", start: -180, end: 10,
+      wiki: "https://en.wikipedia.org/wiki/Indo-Greek_Kingdom",
+      kings: [
+        { name: "Demetrius I (origin c. 200 BCE)", reign: "c. 200 – 180 BCE", wiki: "https://en.wikipedia.org/wiki/Demetrius_I_of_Bactria" },
+        { name: "Menander I (Milinda)", reign: "c. 165 – 130 BCE", wiki: "https://en.wikipedia.org/wiki/Menander_I" },
+        { name: "Agathocles", reign: "c. 190 – 180 BCE", wiki: "https://en.wikipedia.org/wiki/Agathocles_of_Bactria" },
+        { name: "Apollodotus I", reign: "c. 175 – 160 BCE", wiki: "https://en.wikipedia.org/wiki/Apollodotus_I" },
+        { name: "Strato I", reign: "c. 125 – 110 BCE", wiki: "https://en.wikipedia.org/wiki/Strato_I" }
+      ]
+    },
+    { 
+      name: "Indo-Scythian (Shaka)", start: -150, end: 100,
+      wiki: "https://en.wikipedia.org/wiki/Indo-Scythians",
+      kings: [
+        { name: "Maues (Moga)", reign: "c. 120 – 85 BCE", wiki: "https://en.wikipedia.org/wiki/Maues" },
+        { name: "Azes I", reign: "c. 48 – 25 BCE", wiki: "https://en.wikipedia.org/wiki/Azes_I" },
+        { name: "Azes II", reign: "c. 35 BCE – 10 CE", wiki: "https://en.wikipedia.org/wiki/Azes_II" }
+      ]
+    },
+    { 
+      name: "Western Kshatrapas", start: 35, end: 395,
+      wiki: "https://en.wikipedia.org/wiki/Western_Satraps",
+      kings: [
+        { name: "Nahapana", reign: "c. 119 – 124 CE", wiki: "https://en.wikipedia.org/wiki/Nahapana" },
+        { name: "Rudradaman I", reign: "c. 130 – 150 CE", wiki: "https://en.wikipedia.org/wiki/Rudradaman_I" },
+        { name: "Rudrasena II", reign: "c. 255 – 278 CE", wiki: "https://en.wikipedia.org/wiki/Rudrasena_II" },
+        { name: "Rudrasimha III (Last attested)", reign: "c. 388 – 395 CE", wiki: "https://en.wikipedia.org/wiki/Rudrasimha_III" }
+      ]
+    },
+    { 
+      name: "Chedi (Kalinga)", start: -200, end: -50,
+      wiki: "https://en.wikipedia.org/wiki/Mahameghavahana_dynasty",
+      kings: [
+        { name: "Kharavela", reign: "c. 2nd Century BCE", wiki: "https://en.wikipedia.org/wiki/Kharavela" },
+        { name: "Vakradeva", reign: "c. 1st Century BCE", wiki: "https://en.wikipedia.org/wiki/Vakradeva" }
+      ]
+    },
+    { 
+      name: "Satavahana", start: -230, end: 220,
+      wiki: "https://en.wikipedia.org/wiki/Satavahana_dynasty",
+      kings: [
+        { name: "Simuka", reign: "c. 230 – 207 BCE (Disputed)", wiki: "https://en.wikipedia.org/wiki/Simuka" },
+        { name: "Satakarni I", reign: "c. 187 – 175 BCE", wiki: "https://en.wikipedia.org/wiki/Satakarni_I" },
+        { name: "Hala", reign: "c. 20 – 24 CE", wiki: "https://en.wikipedia.org/wiki/Hala_(Satavahana_dynasty)" },
+        { name: "Gautamiputra Satakarni", reign: "c. 106 – 130 CE", wiki: "https://en.wikipedia.org/wiki/Gautamiputra_Satakarni" },
+        { name: "Vasishthiputra Pulumavi", reign: "c. 130 – 158 CE", wiki: "https://en.wikipedia.org/wiki/Vasishthiputra_Pulumavi" },
+        { name: "Yajna Sri Satakarni", reign: "c. 165 – 194 CE", wiki: "https://en.wikipedia.org/wiki/Yajna_Sri_Satakarni" }
+      ]
+    },
+    { 
+      name: "Indo-Parthian", start: 20, end: 220,
+      wiki: "https://en.wikipedia.org/wiki/Indo-Parthian_Kingdom",
+      kings: [
+        { name: "Gondophares", reign: "c. 20 – 50 CE", wiki: "https://en.wikipedia.org/wiki/Gondophares" },
+        { name: "Sases", reign: "c. 50 – 70 CE", wiki: "https://en.wikipedia.org/wiki/Sases" }
+      ]
+    },
+    { 
+      name: "Kushan", start: 30, end: 230,
+      wiki: "https://en.wikipedia.org/wiki/Kushan_Empire",
+      kings: [
+        { name: "Kujula Kadphises", reign: "c. 30 – 80 CE", wiki: "https://en.wikipedia.org/wiki/Kujula_Kadphises" },
+        { name: "Vima Takto", reign: "c. 80 – 105 CE", wiki: "https://en.wikipedia.org/wiki/Vima_Takto" },
+        { name: "Vima Kadphises", reign: "c. 105 – 127 CE", wiki: "https://en.wikipedia.org/wiki/Vima_Kadphises" },
+        { name: "Kanishka the Great", reign: "c. 127 – 150 CE", wiki: "https://en.wikipedia.org/wiki/Kanishka" },
+        { name: "Huvishka", reign: "c. 150 – 190 CE", wiki: "https://en.wikipedia.org/wiki/Huvishka" },
+        { name: "Vasudeva I", reign: "c. 190 – 230 CE", wiki: "https://en.wikipedia.org/wiki/Vasudeva_I" }
+      ]
+    },
+    { 
+      name: "Vakataka (Main)", start: 250, end: 500,
+      wiki: "https://en.wikipedia.org/wiki/Vakataka_dynasty",
+      kings: [
+        { name: "Vindhyashakti", reign: "c. 250 – 270 CE", wiki: "https://en.wikipedia.org/wiki/Vindhyashakti" },
+        { name: "Pravarasena I", reign: "c. 270 – 330 CE", wiki: "https://en.wikipedia.org/wiki/Pravarasena_I" },
+        { name: "Rudrasena I", reign: "c. 330 – 355 CE", wiki: "https://en.wikipedia.org/wiki/Rudrasena_I" },
+        { name: "Prithivishena I", reign: "c. 355 – 380 CE", wiki: "https://en.wikipedia.org/wiki/Prithivishena_I" },
+        { name: "Rudrasena II", reign: "c. 380 – 390 CE", wiki: "https://en.wikipedia.org/wiki/Rudrasena_II_(Vakataka)" },
+        { name: "Prabhavatigupta (Regent)", reign: "c. 390 – 410 CE", wiki: "https://en.wikipedia.org/wiki/Prabhavatigupta" },
+        { name: "Pravarasena II", reign: "c. 410 – 445 CE", wiki: "https://en.wikipedia.org/wiki/Pravarasena_II" },
+        { name: "Narendrasena", reign: "c. 450 – 475 CE", wiki: "https://en.wikipedia.org/wiki/Narendrasena" },
+        { name: "Prithivishena II (Last)", reign: "c. 475 – 500 CE", wiki: "https://en.wikipedia.org/wiki/Prithivishena_II" }
+      ]
+    },
+    { 
+      name: "Vakataka (Vatsagulma)", start: 330, end: 500,
+      wiki: "https://en.wikipedia.org/wiki/Vakataka_dynasty",
+      kings: [
+        { name: "Sarvasena", reign: "c. 330 – 355 CE", wiki: "https://en.wikipedia.org/wiki/Sarvasena" },
+        { name: "Vindhyashakti II", reign: "c. 355 – 400 CE" },
+        { name: "Pravarasena II", reign: "c. 400 – 415 CE", wiki: "https://en.wikipedia.org/wiki/Pravarasena_II_(Vatsagulma)" },
+        { name: "Unnamed successor", reign: "c. 415 – 450 CE" },
+        { name: "Devasena", reign: "c. 450 – 475 CE" },
+        { name: "Harishena (Last)", reign: "c. 475 – 500 CE", wiki: "https://en.wikipedia.org/wiki/Harishena" }
+      ]
+    },
+    { 
+      name: "Pallava", start: 275, end: 897,
+      wiki: "https://en.wikipedia.org/wiki/Pallava_dynasty",
+      kings: [
+        { name: "Simhavarman I", reign: "c. 275 – 300 CE", wiki: "https://en.wikipedia.org/wiki/Simhavarman_I" },
+        { name: "Mahendravarman I", reign: "c. 600 – 630 CE", wiki: "https://en.wikipedia.org/wiki/Mahendravarman_I" },
+        { name: "Narasimhavarman I (Mamalla)", reign: "c. 630 – 668 CE", wiki: "https://en.wikipedia.org/wiki/Narasimhavarman_I" },
+        { name: "Narasimhavarman II (Rajasimha)", reign: "c. 700 – 728 CE", wiki: "https://en.wikipedia.org/wiki/Narasimhavarman_II" },
+        { name: "Nandivarman II", reign: "c. 731 – 796 CE", wiki: "https://en.wikipedia.org/wiki/Nandivarman_II" },
+        { name: "Aparajitavarman (Last)", reign: "c. 885 – 897 CE", wiki: "https://en.wikipedia.org/wiki/Aparajitavarman" }
+      ]
+    },
+    { 
+      name: "Gupta", start: 320, end: 550,
+      wiki: "https://en.wikipedia.org/wiki/Gupta_Empire",
+      kings: [
+        { name: "Chandragupta I", reign: "c. 319 – 335 CE", wiki: "https://en.wikipedia.org/wiki/Chandragupta_I" },
+        { name: "Samudragupta", reign: "c. 335 – 375 CE", wiki: "https://en.wikipedia.org/wiki/Samudragupta" },
+        { name: "Chandragupta II (Vikramaditya)", reign: "c. 375 – 415 CE", wiki: "https://en.wikipedia.org/wiki/Chandragupta_II" },
+        { name: "Kumaragupta I", reign: "c. 415 – 455 CE", wiki: "https://en.wikipedia.org/wiki/Kumaragupta_I" },
+        { name: "Skandagupta", reign: "c. 455 – 467 CE", wiki: "https://en.wikipedia.org/wiki/Skandagupta" },
+        { name: "Vishnugupta (Last)", reign: "c. 540 – 550 CE", wiki: "https://en.wikipedia.org/wiki/Vishnugupta_(Gupta_Empire)" }
+      ]
+    },
+    { 
+      name: "Kadamba (Banavasi)", start: 345, end: 565,
+      wiki: "https://en.wikipedia.org/wiki/Kadamba_dynasty",
+      kings: [
+        { name: "Mayurasharma", reign: "c. 345 – 365 CE", wiki: "https://en.wikipedia.org/wiki/Mayurasharma" },
+        { name: "Kakusthavarma", reign: "c. 405 – 435 CE", wiki: "https://en.wikipedia.org/wiki/Kakusthavarma" },
+        { name: "Harivarma (Last of original line)", reign: "c. 435 – 460 CE", wiki: "https://en.wikipedia.org/wiki/Harivarma" },
+        { name: "Ravivarma", reign: "c. 485 – 519 CE", wiki: "https://en.wikipedia.org/wiki/Ravivarma" }
+      ]
+    },
+    { 
+      name: "Kadamba (Triparvata)", start: 450, end: 600,
+      wiki: "https://en.wikipedia.org/wiki/Kadamba_dynasty",
+      kings: [
+        { name: "Krishnavarma I", reign: "c. 450 – 475 CE", wiki: "https://en.wikipedia.org/wiki/Krishnavarma_I" },
+        { name: "Vishnuvarma", reign: "c. 475 – 500 CE" },
+        { name: "Simhavarma", reign: "c. 500 – 525 CE" },
+        { name: "Krishnavarma II (Defeated Harivarma)", reign: "c. 516 – 547 CE", wiki: "https://en.wikipedia.org/wiki/Krishnavarma_II" }
+      ]
+    },
+    { 
+      name: "Maitraka", start: 475, end: 776,
+      wiki: "https://en.wikipedia.org/wiki/Maitraka_dynasty",
+      kings: [
+        { name: "Bhatarka", reign: "c. 475 – 515 CE", wiki: "https://en.wikipedia.org/wiki/Bhatarka" },
+        { name: "Dharasena I", reign: "c. 550 – 575 CE", wiki: "https://en.wikipedia.org/wiki/Dharasena_I" },
+        { name: "Siladitya I", reign: "c. 600 – 615 CE", wiki: "https://en.wikipedia.org/wiki/Siladitya_I" },
+        { name: "Siladitya VII (Last)", reign: "c. 766 – 776 CE", wiki: "https://en.wikipedia.org/wiki/Siladitya_VII" }
+      ]
+    },
+    { 
+      name: "Chalukya (Badami)", start: 543, end: 753,
+      wiki: "https://en.wikipedia.org/wiki/Chalukya_dynasty",
+      kings: [
+        { name: "Pulakeshin I", reign: "c. 543 – 566 CE", wiki: "https://en.wikipedia.org/wiki/Pulakeshin_I" },
+        { name: "Kirtivarman I", reign: "c. 566 – 597 CE", wiki: "https://en.wikipedia.org/wiki/Kirtivarman_I" },
+        { name: "Pulakeshin II", reign: "c. 610 – 642 CE", wiki: "https://en.wikipedia.org/wiki/Pulakeshin_II" },
+        { name: "Vikramaditya I", reign: "c. 655 – 680 CE", wiki: "https://en.wikipedia.org/wiki/Vikramaditya_I" },
+        { name: "Vikramaditya II", reign: "c. 733 – 746 CE", wiki: "https://en.wikipedia.org/wiki/Vikramaditya_II" },
+        { name: "Kirtivarman II (Last)", reign: "c. 746 – 753 CE", wiki: "https://en.wikipedia.org/wiki/Kirtivarman_II" }
+      ]
+    },
+    { 
+      name: "Pushyabhuti", start: 550, end: 647,
+      wiki: "https://en.wikipedia.org/wiki/Pushyabhuti_dynasty",
+      kings: [
+        { name: "Prabhakarvardhana", reign: "c. 580 – 605 CE", wiki: "https://en.wikipedia.org/wiki/Prabhakarvardhana" },
+        { name: "Rajyavardhana", reign: "c. 605 – 606 CE", wiki: "https://en.wikipedia.org/wiki/Rajyavardhana" },
+        { name: "Harshavardhana (Harsha)", reign: "c. 606 – 647 CE", wiki: "https://en.wikipedia.org/wiki/Harsha" }
+      ]
+    },
+    { 
+      name: "Maukhari", start: 550, end: 606,
+      wiki: "https://en.wikipedia.org/wiki/Maukhari_dynasty",
+      kings: [
+        { name: "Ishanavarman", reign: "c. 550 – 576 CE", wiki: "https://en.wikipedia.org/wiki/Ishanavarman" },
+        { name: "Avantivarman", reign: "c. 576 – 600 CE", wiki: "https://en.wikipedia.org/wiki/Avantivarman_(Maukhari)" },
+        { name: "Grahavarman (Last)", reign: "c. 600 – 606 CE", wiki: "https://en.wikipedia.org/wiki/Grahavarman" }
+      ]
+    },
+    { 
+      name: "Karkota", start: 625, end: 855,
+      wiki: "https://en.wikipedia.org/wiki/Karkota_dynasty",
+      kings: [
+        { name: "Durlabhavardhana", reign: "c. 625 – 661 CE", wiki: "https://en.wikipedia.org/wiki/Durlabhavardhana" },
+        { name: "Lalitaditya Muktapida", reign: "c. 724 – 760 CE", wiki: "https://en.wikipedia.org/wiki/Lalitaditya_Muktapida" },
+        { name: "Jayapida", reign: "c. 776 – 807 CE", wiki: "https://en.wikipedia.org/wiki/Jayapida" },
+        { name: "Utpalapida (Last)", reign: "c. 850 – 855 CE", wiki: "https://en.wikipedia.org/wiki/Utpalapida" }
+      ]
+    },
+    { 
+      name: "Eastern Chalukya", start: 624, end: 1075,
+      wiki: "https://en.wikipedia.org/wiki/Eastern_Chalukyas",
+      kings: [
+        { name: "Kubja Vishnuvardhana", reign: "c. 624 – 641 CE", wiki: "https://en.wikipedia.org/wiki/Kubja_Vishnuvardhana" },
+        { name: "Vijayaditya I", reign: "c. 755 – 772 CE", wiki: "https://en.wikipedia.org/wiki/Vijayaditya_I" },
+        { name: "Vijayaditya II", reign: "c. 808 – 847 CE", wiki: "https://en.wikipedia.org/wiki/Vijayaditya_II" },
+        { name: "Gunaga Vijayaditya III", reign: "c. 848 – 892 CE", wiki: "https://en.wikipedia.org/wiki/Gunaga_Vijayaditya_III" },
+        { name: "Rajaraja Narendra", reign: "c. 1019 – 1061 CE", wiki: "https://en.wikipedia.org/wiki/Rajaraja_Narendra" },
+        { name: "Vijayaditya VII (Last independent)", reign: "c. 1061 – 1075 CE", wiki: "https://en.wikipedia.org/wiki/Vijayaditya_VII" }
+      ]
+    },
+    { 
+      name: "Kamarupa (Varman)", start: 350, end: 650,
+      wiki: "https://en.wikipedia.org/wiki/Varman_dynasty_of_Kamarupa",
+      kings: [
+        { name: "Pushyavarman", reign: "c. 350 – 374 CE", wiki: "https://en.wikipedia.org/wiki/Pushyavarman" },
+        { name: "Bhaskarvarman (Last)", reign: "c. 600 – 650 CE", wiki: "https://en.wikipedia.org/wiki/Bhaskaravarman" }
+      ]
+    },
+    { 
+      name: "Pratihara", start: 730, end: 1036,
+      wiki: "https://en.wikipedia.org/wiki/Gurjara-Pratihara_dynasty",
+      kings: [
+        { name: "Nagabhata I", reign: "c. 730 – 760 CE", wiki: "https://en.wikipedia.org/wiki/Nagabhata_I" },
+        { name: "Vatsaraja", reign: "c. 775 – 805 CE", wiki: "https://en.wikipedia.org/wiki/Vatsaraja" },
+        { name: "Nagabhata II", reign: "c. 805 – 833 CE", wiki: "https://en.wikipedia.org/wiki/Nagabhata_II" },
+        { name: "Mihira Bhoja", reign: "c. 836 – 885 CE", wiki: "https://en.wikipedia.org/wiki/Mihira_Bhoja" },
+        { name: "Mahendrapala I", reign: "c. 885 – 910 CE", wiki: "https://en.wikipedia.org/wiki/Mahendrapala_I" },
+        { name: "Mahipala I", reign: "c. 912 – 944 CE", wiki: "https://en.wikipedia.org/wiki/Mahipala_I" },
+        { name: "Rajyapala", reign: "c. 960 – 1018 CE", wiki: "https://en.wikipedia.org/wiki/Rajyapala" },
+        { name: "Trilochanapala", reign: "c. 1018 – 1027 CE", wiki: "https://en.wikipedia.org/wiki/Trilochanapala" },
+        { name: "Yashpala (Last)", reign: "c. 1024 – 1036 CE", wiki: "https://en.wikipedia.org/wiki/Yashpala" }
+      ]
+    },
+    { 
+      name: "Pala", start: 750, end: 1175,
+      wiki: "https://en.wikipedia.org/wiki/Pala_Empire",
+      kings: [
+        { name: "Gopala", reign: "c. 750 – 770 CE", wiki: "https://en.wikipedia.org/wiki/Gopala_(Pala_dynasty)" },
+        { name: "Dharmapala", reign: "c. 770 – 810 CE", wiki: "https://en.wikipedia.org/wiki/Dharmapala_(Pala_dynasty)" },
+        { name: "Devapala", reign: "c. 810 – 850 CE", wiki: "https://en.wikipedia.org/wiki/Devapala_(Pala_dynasty)" },
+        { name: "Mahipala I", reign: "c. 988 – 1038 CE", wiki: "https://en.wikipedia.org/wiki/Mahipala_I" },
+        { name: "Ramapala", reign: "c. 1077 – 1120 CE", wiki: "https://en.wikipedia.org/wiki/Ramapala" },
+        { name: "Madanapala", reign: "c. 1144 – 1161 CE", wiki: "https://en.wikipedia.org/wiki/Madanapala" },
+        { name: "Govindapala (Last in some chronologies)", reign: "c. 1162 – 1175 CE", wiki: "https://en.wikipedia.org/wiki/Govindapala" }
+      ]
+    },
+    { 
+      name: "Rashtrakuta", start: 753, end: 982,
+      wiki: "https://en.wikipedia.org/wiki/Rashtrakuta_dynasty",
+      kings: [
+        { name: "Dantidurga (origin c. 735)", reign: "c. 735 – 756 CE", wiki: "https://en.wikipedia.org/wiki/Dantidurga" },
+        { name: "Krishna I", reign: "c. 756 – 774 CE", wiki: "https://en.wikipedia.org/wiki/Krishna_I_(Rashtrakuta)" },
+        { name: "Govinda III", reign: "c. 793 – 814 CE", wiki: "https://en.wikipedia.org/wiki/Govinda_III" },
+        { name: "Amoghavarsha I", reign: "c. 814 – 878 CE", wiki: "https://en.wikipedia.org/wiki/Amoghavarsha" },
+        { name: "Indra III", reign: "c. 914 – 929 CE", wiki: "https://en.wikipedia.org/wiki/Indra_III" },
+        { name: "Karka II (Last)", reign: "c. 972 – 982 CE", wiki: "https://en.wikipedia.org/wiki/Karka_II" }
+      ]
+    },
+    { 
+      name: "Chola (Imperial)", start: 848, end: 1279,
+      wiki: "https://en.wikipedia.org/wiki/Chola_dynasty",
+      kings: [
+        { name: "Vijayalaya", reign: "c. 848 – 871 CE", wiki: "https://en.wikipedia.org/wiki/Vijayalaya_Chola" },
+        { name: "Aditya I", reign: "c. 871 – 907 CE", wiki: "https://en.wikipedia.org/wiki/Aditya_I" },
+        { name: "Parantaka I", reign: "c. 907 – 955 CE", wiki: "https://en.wikipedia.org/wiki/Parantaka_I" },
+        { name: "Raja Raja Chola I", reign: "c. 985 – 1014 CE", wiki: "https://en.wikipedia.org/wiki/Raja_Raja_Chola_I" },
+        { name: "Rajendra Chola I", reign: "c. 1014 – 1044 CE", wiki: "https://en.wikipedia.org/wiki/Rajendra_Chola_I" },
+        { name: "Kulothunga Chola I", reign: "c. 1070 – 1122 CE", wiki: "https://en.wikipedia.org/wiki/Kulothunga_Chola_I" },
+        { name: "Rajendra Chola III (Last)", reign: "c. 1246 – 1279 CE", wiki: "https://en.wikipedia.org/wiki/Rajendra_Chola_III" }
+      ]
+    },
+    { 
+      name: "Yadava (Seuna)", start: 850, end: 1318,
+      wiki: "https://en.wikipedia.org/wiki/Seuna_(Yadava)_dynasty",
+      kings: [
+        { name: "Dridhaprahara", reign: "c. 860 – 880 CE", wiki: "https://en.wikipedia.org/wiki/Dridhaprahara" },
+        { name: "Seunachandra", reign: "c. 900 – 920 CE", wiki: "https://en.wikipedia.org/wiki/Seunachandra" },
+        { name: "Bhillama V", reign: "c. 1175 – 1191 CE", wiki: "https://en.wikipedia.org/wiki/Bhillama_V" },
+        { name: "Singhana II", reign: "c. 1200 – 1247 CE", wiki: "https://en.wikipedia.org/wiki/Singhana_II" },
+        { name: "Ramachandra", reign: "c. 1271 – 1311 CE", wiki: "https://en.wikipedia.org/wiki/Ramachandra_of_Devagiri" },
+        { name: "Harapaladeva (Last resistance)", reign: "c. 1311 – 1318 CE", wiki: "https://en.wikipedia.org/wiki/Harapaladeva" }
+      ]
+    },
+    { 
+      name: "Hoysala", start: 1026, end: 1343,
+      wiki: "https://en.wikipedia.org/wiki/Hoysala_Empire",
+      kings: [
+        { name: "Nripa Kama II", reign: "c. 1026 – 1047 CE", wiki: "https://en.wikipedia.org/wiki/Nripa_Kama_II" },
+        { name: "Vinayaditya", reign: "c. 1047 – 1098 CE", wiki: "https://en.wikipedia.org/wiki/Vinayaditya_(Hoysala)" },
+        { name: "Vishnuvardhana", reign: "c. 1108 – 1152 CE", wiki: "https://en.wikipedia.org/wiki/Vishnuvardhana" },
+        { name: "Veera Ballala II", reign: "c. 1173 – 1220 CE", wiki: "https://en.wikipedia.org/wiki/Veera_Ballala_II" },
+        { name: "Vira Narasimha II", reign: "c. 1220 – 1235 CE", wiki: "https://en.wikipedia.org/wiki/Vira_Narasimha_II" },
+        { name: "Veera Ballala III (Last major)", reign: "c. 1292 – 1343 CE", wiki: "https://en.wikipedia.org/wiki/Veera_Ballala_III" }
+      ]
+    },
+    { 
+      name: "Kakatiya", start: 1163, end: 1323,
+      wiki: "https://en.wikipedia.org/wiki/Kakatiya_dynasty",
+      kings: [
+        { name: "Prola II (feudatory origin c. 1110)", reign: "c. 1110 – 1158 CE", wiki: "https://en.wikipedia.org/wiki/Prola_II" },
+        { name: "Rudra Deva", reign: "c. 1158 – 1195 CE", wiki: "https://en.wikipedia.org/wiki/Rudra_Deva" },
+        { name: "Ganapati Deva", reign: "c. 1199 – 1262 CE", wiki: "https://en.wikipedia.org/wiki/Ganapati_Deva" },
+        { name: "Rudrama Devi", reign: "c. 1262 – 1289 CE", wiki: "https://en.wikipedia.org/wiki/Rudrama_Devi" },
+        { name: "Prataparudra II (Last)", reign: "c. 1289 – 1323 CE", wiki: "https://en.wikipedia.org/wiki/Prataparudra_II" }
+      ]
+    },
+    { 
+      name: "Chera (Early)", start: -300, end: 300,
+      wiki: "https://en.wikipedia.org/wiki/Chera_dynasty",
+      kings: [
+        { name: "Senguttuvan", reign: "c. 2nd Century CE", wiki: "https://en.wikipedia.org/wiki/Senguttuvan" },
+        { name: "Nedunjeral Adan", reign: "c. 3rd Century CE", wiki: "https://en.wikipedia.org/wiki/Nedunjeral_Adan" }
+      ]
+    },
+    { 
+      name: "Chera (Later/Perumal)", start: 800, end: 1122,
+      wiki: "https://en.wikipedia.org/wiki/Chera_dynasty",
+      kings: [
+        { name: "Kulasekhara Alvar", reign: "c. 800 – 820 CE", wiki: "https://en.wikipedia.org/wiki/Kulasekhara_Alvar" },
+        { name: "Rama Varma Kulashekhara", reign: "c. 1090 – 1102 CE", wiki: "https://en.wikipedia.org/wiki/Rama_Varma_Kulashekhara" },
+        { name: "Ravi Varma Kulashekhara (Last)", reign: "c. 1102 – 1122 CE", wiki: "https://en.wikipedia.org/wiki/Ravi_Varma_Kulashekhara" }
+      ]
+    },
+    { 
+      name: "Pandya", start: -300, end: 1345, 
+      wiki: "https://en.wikipedia.org/wiki/Pandya_dynasty",
+      kings: [
+        { name: "Nedunjeliyan I", reign: "c. 270 – 200 BCE", wiki: "https://en.wikipedia.org/wiki/Nedunjeliyan_I" },
+        { name: "Kadungon", reign: "c. 560 – 590 CE", wiki: "https://en.wikipedia.org/wiki/Kadungon" },
+        { name: "Maravarman Sundara I", reign: "c. 1216 – 1238 CE", wiki: "https://en.wikipedia.org/wiki/Maravarman_Sundara_I" },
+        { name: "Jatavarman Sundara I", reign: "c. 1251 – 1268 CE", wiki: "https://en.wikipedia.org/wiki/Jatavarman_Sundara_I" },
+        { name: "Maravarman Kulasekara I", reign: "c. 1268 – 1310 CE", wiki: "https://en.wikipedia.org/wiki/Maravarman_Kulasekara_I" },
+        { name: "Later claimants continued", reign: "Post-1310 CE" }
+      ]
+    },
+    { 
+      name: "Western Ganga", start: 350, end: 1004,
+      wiki: "https://en.wikipedia.org/wiki/Western_Ganga_dynasty",
+      kings: [
+        { name: "Konganivarman Madhava", reign: "c. 350 – 370 CE", wiki: "https://en.wikipedia.org/wiki/Konganivarman_Madhava" },
+        { name: "Durvinita", reign: "c. 529 – 579 CE", wiki: "https://en.wikipedia.org/wiki/Durvinita" },
+        { name: "Rachamalla I", reign: "c. 816 – 843 CE", wiki: "https://en.wikipedia.org/wiki/Rachamalla_I" },
+        { name: "Ereganga Neetimarga II", reign: "c. 907 – 921 CE", wiki: "https://en.wikipedia.org/wiki/Ereganga_Neetimarga_II" },
+        { name: "Rakkasa Ganga", reign: "c. 985 – 1004 CE", wiki: "https://en.wikipedia.org/wiki/Rakkasa_Ganga" }
+      ]
+    },
+    { 
+      name: "Chalukya (Kalyani)", start: 973, end: 1189,
+      wiki: "https://en.wikipedia.org/wiki/Western_Chalukya_Empire",
+      kings: [
+        { name: "Tailapa II", reign: "c. 973 – 997 CE", wiki: "https://en.wikipedia.org/wiki/Tailapa_II" },
+        { name: "Satyashraya", reign: "c. 997 – 1008 CE", wiki: "https://en.wikipedia.org/wiki/Satyashraya" },
+        { name: "Someshvara I", reign: "c. 1042 – 1068 CE", wiki: "https://en.wikipedia.org/wiki/Someshvara_I" },
+        { name: "Vikramaditya VI", reign: "c. 1076 – 1126 CE", wiki: "https://en.wikipedia.org/wiki/Vikramaditya_VI" },
+        { name: "Someshvara III", reign: "c. 1126 – 1138 CE", wiki: "https://en.wikipedia.org/wiki/Someshvara_III" },
+        { name: "Someshvara IV (Last)", reign: "c. 1184 – 1189 CE", wiki: "https://en.wikipedia.org/wiki/Someshvara_IV" }
+      ]
+    },
+    { 
+      name: "Sena", start: 1070, end: 1230,
+      wiki: "https://en.wikipedia.org/wiki/Sena_dynasty",
+      kings: [
+        { name: "Samanta Sena", reign: "c. 1070 – 1095 CE", wiki: "https://en.wikipedia.org/wiki/Samanta_Sena" },
+        { name: "Hemanta Sena", reign: "c. 1095 – 1120 CE", wiki: "https://en.wikipedia.org/wiki/Hemanta_Sena" },
+        { name: "Vijaya Sena", reign: "c. 1120 – 1158 CE", wiki: "https://en.wikipedia.org/wiki/Vijaya_Sena" },
+        { name: "Ballala Sena", reign: "c. 1158 – 1179 CE", wiki: "https://en.wikipedia.org/wiki/Ballala_Sena" },
+        { name: "Lakshmana Sena", reign: "c. 1179 – 1206 CE", wiki: "https://en.wikipedia.org/wiki/Lakshmana_Sena" },
+        { name: "Vishvarupa Sena", reign: "c. 1206 – 1225 CE", wiki: "https://en.wikipedia.org/wiki/Vishvarupa_Sena" },
+        { name: "Keshava Sena (Last known)", reign: "c. 1225 – 1230 CE", wiki: "https://en.wikipedia.org/wiki/Keshava_Sena" }
+      ]
+    },
+    { 
+      name: "Utpala", start: 855, end: 939,
+      wiki: "https://en.wikipedia.org/wiki/Utpala_dynasty",
+      kings: [
+        { name: "Avantivarman", reign: "c. 855 – 883 CE", wiki: "https://en.wikipedia.org/wiki/Avantivarman_(Utpala_dynasty)" },
+        { name: "Sankaravarman", reign: "c. 883 – 902 CE", wiki: "https://en.wikipedia.org/wiki/Sankaravarman" },
+        { name: "Suravarman II (Last)", reign: "c. 935 – 939 CE", wiki: "https://en.wikipedia.org/wiki/Suravarman_II" }
+      ]
+    },
+    { 
+      name: "Lohara", start: 1003, end: 1339,
+      wiki: "https://en.wikipedia.org/wiki/Lohara_dynasty",
+      kings: [
+        { name: "Sangramaraja", reign: "c. 1003 – 1028 CE", wiki: "https://en.wikipedia.org/wiki/Sangramaraja" },
+        { name: "Ananta", reign: "c. 1028 – 1063 CE", wiki: "https://en.wikipedia.org/wiki/Ananta_(Lohara_dynasty)" },
+        { name: "Suhadeva", reign: "c. 1301 – 1320 CE", wiki: "https://en.wikipedia.org/wiki/Suhadeva" },
+        { name: "Rinchan", reign: "c. 1320 – 1323 CE", wiki: "https://en.wikipedia.org/wiki/Rinchan" },
+        { name: "Udayanadeva", reign: "c. 1323 – 1338 CE", wiki: "https://en.wikipedia.org/wiki/Udayanadeva" },
+        { name: "Kota Rani (Last)", reign: "c. 1338 – 1339 CE", wiki: "https://en.wikipedia.org/wiki/Kota_Rani" }
+      ]
+    },
+    { 
+      name: "Paramara", start: 800, end: 1327,
+      wiki: "https://en.wikipedia.org/wiki/Paramara_dynasty",
+      kings: [
+        { name: "Upendra", reign: "c. 800 – 818 CE", wiki: "https://en.wikipedia.org/wiki/Upendra_(Paramara)" },
+        { name: "Munja", reign: "c. 974 – 994 CE", wiki: "https://en.wikipedia.org/wiki/Munja_(Paramara)" },
+        { name: "Bhoja", reign: "c. 1010 – 1055 CE", wiki: "https://en.wikipedia.org/wiki/Bhoja" },
+        { name: "Mahalakadeva (Last)", reign: "c. 1305 – 1327 CE", wiki: "https://en.wikipedia.org/wiki/Mahalakadeva" }
+      ]
+    },
+    { 
+      name: "Chandela", start: 831, end: 1311,
+      wiki: "https://en.wikipedia.org/wiki/Chandela_dynasty",
+      kings: [
+        { name: "Nannuka", reign: "c. 831 – 850 CE", wiki: "https://en.wikipedia.org/wiki/Nannuka" },
+        { name: "Dhanga", reign: "c. 950 – 999 CE", wiki: "https://en.wikipedia.org/wiki/Dhanga" },
+        { name: "Vidyadhara", reign: "c. 1003 – 1035 CE", wiki: "https://en.wikipedia.org/wiki/Vidyadhara_(Chandela)" },
+        { name: "Paramardi (Parmardi)", reign: "c. 1165 – 1203 CE", wiki: "https://en.wikipedia.org/wiki/Paramardi" },
+        { name: "Trailokyavarman", reign: "c. 1203 – 1245 CE", wiki: "https://en.wikipedia.org/wiki/Trailokyavarman" },
+        { name: "Viravarman", reign: "c. 1245 – 1285 CE", wiki: "https://en.wikipedia.org/wiki/Viravarman" },
+        { name: "Bhojavarman", reign: "c. 1285 – 1288 CE", wiki: "https://en.wikipedia.org/wiki/Bhojavarman" },
+        { name: "Hammiravarman", reign: "c. 1288 – 1311 CE", wiki: "https://en.wikipedia.org/wiki/Hammiravarman" }
+      ]
+    },
+    { 
+      name: "Chahamana (Chauhan)", start: 700, end: 1192,
+      wiki: "https://en.wikipedia.org/wiki/Chahamana_dynasty",
+      kings: [
+        { name: "Vasudeva", reign: "c. 700 – 720 CE", wiki: "https://en.wikipedia.org/wiki/Vasudeva_(Chahamana)" },
+        { name: "Vigraharaja IV", reign: "c. 1150 – 1164 CE", wiki: "https://en.wikipedia.org/wiki/Vigraharaja_IV" },
+        { name: "Prithviraj III", reign: "c. 1178 – 1192 CE", wiki: "https://en.wikipedia.org/wiki/Prithviraj_Chauhan" }
+      ]
+    },
+    { 
+      name: "Guhila (Mewar)", start: 734, end: 1364,
+      wiki: "https://en.wikipedia.org/wiki/Guhila_dynasty",
+      kings: [
+        { name: "Bappa Rawal", reign: "c. 734 – 753 CE", wiki: "https://en.wikipedia.org/wiki/Bappa_Rawal" },
+        { name: "Rana Hammir", reign: "c. 1326 – 1364 CE", wiki: "https://en.wikipedia.org/wiki/Hammir_Singh" }
+      ]
+    },
+    { 
+      name: "Kalachuri (Tripuri)", start: 850, end: 1225,
+      wiki: "https://en.wikipedia.org/wiki/Kalachuri_dynasty",
+      kings: [
+        { name: "Kokalla I", reign: "c. 850 – 890 CE", wiki: "https://en.wikipedia.org/wiki/Kokalla_I" },
+        { name: "Gangeyadeva", reign: "c. 1015 – 1041 CE", wiki: "https://en.wikipedia.org/wiki/Gangeyadeva" },
+        { name: "Karna", reign: "c. 1041 – 1073 CE", wiki: "https://en.wikipedia.org/wiki/Karna_(Kalachuri)" }
+      ]
+    },
+    { 
+      name: "Gahadavala", start: 1070, end: 1194,
+      wiki: "https://en.wikipedia.org/wiki/Gahadavala_dynasty",
+      kings: [
+        { name: "Chandradeva", reign: "c. 1070 – 1090 CE", wiki: "https://en.wikipedia.org/wiki/Chandradeva" },
+        { name: "Govindachandra", reign: "c. 1114 – 1155 CE", wiki: "https://en.wikipedia.org/wiki/Govindachandra_(Gahadavala)" },
+        { name: "Jayachandra", reign: "c. 1170 – 1194 CE", wiki: "https://en.wikipedia.org/wiki/Jayachandra" }
+      ]
+    },
+    { 
+      name: "Eastern Ganga", start: 500, end: 1434,
+      wiki: "https://en.wikipedia.org/wiki/Eastern_Ganga_dynasty",
+      kings: [
+        { name: "Indravarman I", reign: "c. 5th Century CE", wiki: "https://en.wikipedia.org/wiki/Indravarman_I" },
+        { name: "Anantavarman Chodaganga", reign: "c. 1078 – 1147 CE", wiki: "https://en.wikipedia.org/wiki/Anantavarman_Chodaganga" },
+        { name: "Narasimhadeva I", reign: "c. 1238 – 1264 CE", wiki: "https://en.wikipedia.org/wiki/Narasimhadeva_I" },
+        { name: "Bhanudeva IV (Last)", reign: "c. 1414 – 1434 CE", wiki: "https://en.wikipedia.org/wiki/Bhanudeva_IV" }
+      ]
+    },
+    { 
+      name: "Chandra (Bengal)", start: 900, end: 1050,
+      wiki: "https://en.wikipedia.org/wiki/Chandra_dynasty",
+      kings: [
+        { name: "Trailokyachandra", reign: "c. 900 – 930 CE", wiki: "https://en.wikipedia.org/wiki/Trailokyachandra" },
+        { name: "Govindachandra", reign: "c. 1020 – 1045 CE", wiki: "https://en.wikipedia.org/wiki/Govindachandra_(Chandra)" }
+      ]
+    },
+    { 
+      name: "Varman (Bengal)", start: 1050, end: 1150,
+      wiki: "https://en.wikipedia.org/wiki/Varman_dynasty_(Bengal)",
+      kings: [
+        { name: "Divvoka", reign: "c. 1050 – 1075 CE" },
+        { name: "Jatavarman", reign: "c. 1075 – 1100 CE" }
+      ]
+    },
+    { 
+      name: "Shilahara", start: 800, end: 1265,
+      wiki: "https://en.wikipedia.org/wiki/Shilahara_dynasty",
+      kings: [
+        { name: "Kapardin I", reign: "c. 800 – 825 CE", wiki: "https://en.wikipedia.org/wiki/Kapardin_I" },
+        { name: "Aparajita", reign: "c. 1180 – 1200 CE", wiki: "https://en.wikipedia.org/wiki/Aparajita_(Shilahara)" },
+        { name: "Someshvara (Last)", reign: "c. 1260 – 1265 CE", wiki: "https://en.wikipedia.org/wiki/Someshvara_(Shilahara)" }
+      ]
+    },
+    { 
+      name: "Tomara", start: 736, end: 1152,
+      wiki: "https://en.wikipedia.org/wiki/Tomara_dynasty",
+      kings: [
+        { name: "Anangpal I", reign: "c. 736 – 756 CE", wiki: "https://en.wikipedia.org/wiki/Anangpal_I" },
+        { name: "Anangpal II", reign: "c. 1052 – 1082 CE", wiki: "https://en.wikipedia.org/wiki/Anangpal_II" },
+        { name: "Vijayapala (Last)", reign: "c. 1145 – 1152 CE", wiki: "https://en.wikipedia.org/wiki/Vijayapala" }
+      ]
+    }
+  ];
+
+  // ---- CONFIG & MATH ----
+  const MIN_YEAR = -650;   
+  const MAX_YEAR = 1450;   
+  const ROW_H = 32;
+  const LEFT_PAD = 20;     
+  const RIGHT_PAD = 180;   
+  const TIMELINE_W = 1500; 
+
+  const headerEl = document.getElementById('timelineHeader');
+  const bodyEl = document.getElementById('timelineBody');
+  
+  // Calculate total height for body
+  const totalRows = dynasties.length;
+  bodyEl.style.height = (totalRows * ROW_H + 20) + 'px';
+
+  function histToMath(year) {
+    if (year < 0) return year + 1;
+    return year;
+  }
+
+  function mathToX(mathYear) {
+    const mathMin = histToMath(MIN_YEAR);
+    const mathMax = histToMath(MAX_YEAR);
+    return LEFT_PAD + ((mathYear - mathMin) / (mathMax - mathMin)) * (TIMELINE_W - LEFT_PAD - RIGHT_PAD);
+  }
+
+  function yearToX(year) {
+    return mathToX(histToMath(year));
+  }
+
+  function fmtYear(y) {
+    return y < 0 ? Math.abs(y) + ' BCE' : y + ' CE';
+  }
+
+  // ---- DRAW AXIS (Header) ----
+  const axisYears = [-600, -400, -200, 0, 200, 400, 600, 800, 1000, 1200, 1400];
+  axisYears.forEach(y => {
+    let x, labelText;
+    if (y === 0) {
+      x = mathToX(0);
+      labelText = "BCE | CE";
+    } else {
+      x = yearToX(y);
+      labelText = fmtYear(y);
+    }
+    
+    const line = document.createElement('div');
+    line.className = 'axis-line';
+    line.style.left = x + 'px';
+    headerEl.appendChild(line);
+
+    const lbl = document.createElement('div');
+    lbl.className = 'axis-label';
+    lbl.style.left = x + 'px';
+    lbl.textContent = labelText;
+    if (y === 0) lbl.style.fontWeight = "bold";
+    headerEl.appendChild(lbl);
+  });
+
+  // ---- DRAW DYNASTY ROWS (Body) ----
+  dynasties.forEach((d, i) => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.style.top = (i * ROW_H + 10) + 'px';
+    row.id = 'row-' + i;
+    row.onclick = (e) => {
+      if (e.target.tagName === 'A') return;
+      openPanel(i);
+    };
+
+    const x1 = yearToX(d.start);
+    const x2 = yearToX(d.end);
+    const w = Math.max(x2 - x1, 3);
+
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    bar.style.left = x1 + 'px';
+    bar.style.width = w + 'px';
+
+    const label = document.createElement('div');
+    label.className = 'name' + (d.wiki ? ' linked' : '');
+    label.style.left = (x2 + 8) + 'px';
+    
+    if (d.wiki) {
+      const a = document.createElement('a');
+      a.href = d.wiki;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = d.name;
+      label.appendChild(a);
+    } else {
+      label.textContent = d.name;
+    }
+
+    row.appendChild(bar);
+    row.appendChild(label);
+    bodyEl.appendChild(row);
+  });
+
+  // ---- PANEL LOGIC ----
+  let activeRowId = null;
+
+  function openPanel(index) {
+    const d = dynasties[index];
+    
+    if (activeRowId !== null) {
+      document.getElementById('row-' + activeRowId).classList.remove('active');
+    }
+    activeRowId = index;
+    document.getElementById('row-' + index).classList.add('active');
+
+    const titleEl = document.getElementById('panelTitle');
+    if (d.wiki) {
+      titleEl.innerHTML = `<a href="${d.wiki}" target="_blank" rel="noopener noreferrer">${d.name}</a> (${fmtYear(d.start)} – ${fmtYear(d.end)})`;
+    } else {
+      titleEl.textContent = `${d.name} (${fmtYear(d.start)} – ${fmtYear(d.end)})`;
+    }
+
+    const content = document.getElementById('panelContent');
+    content.innerHTML = '';
+    
+    if (d.kings && d.kings.length > 0) {
+      d.kings.forEach(k => {
+        const card = document.createElement('div');
+        card.className = 'king-card';
+        
+        const nameEl = k.wiki 
+          ? `<span class="king-name"><a href="${k.wiki}" target="_blank" rel="noopener noreferrer">${k.name}</a></span>`
+          : `<span class="king-name">${k.name}</span>`;
+        
+        card.innerHTML = `
+          ${nameEl}
+          <span class="king-dates">${k.reign}</span>
+        `;
+        content.appendChild(card);
+      });
+    } else {
+      content.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#777;">No detailed king records available for this period.</p>';
+    }
+
+    document.getElementById('detailPanel').classList.add('open');
+  }
+
+  function closePanel() {
+    document.getElementById('detailPanel').classList.remove('open');
+    if (activeRowId !== null) {
+      document.getElementById('row-' + activeRowId).classList.remove('active');
+      activeRowId = null;
+    }
+  }
+</script>
+
+</body>
+</html>
